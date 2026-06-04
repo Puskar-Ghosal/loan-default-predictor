@@ -1,0 +1,18 @@
+# Core
+pandas>=1.5.0
+numpy>=1.23.0
+
+# Visualization
+matplotlib>=3.6.0
+seaborn>=0.12.0
+missingno>=0.5.2
+
+# Machine Learning (will be used from Day 11 onwards)
+scikit-learn>=1.2.0
+imbalanced-learn>=0.10.0
+xgboost>=1.7.0
+shap>=0.41.0
+
+# Notebook
+jupyter>=1.0.0
+ipykernel>=6.0.0
