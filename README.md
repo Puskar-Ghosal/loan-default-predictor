@@ -152,6 +152,52 @@ loan-default-predictor/
 | `feature_distributions.png` | All feature histograms (capped at 99th percentile) |
 
 ---
+## ✅ Day 02 — Missing Values Deep Dive
+
+> **Notebook:** [`notebooks/Day_02_Missing_Values.ipynb`](notebooks/Day_02_Missing_Values.ipynb)
+
+### What Was Done
+- Visualized missingness patterns using `missingno` (matrix, bar, heatmap)
+- Classified missingness type per column (MCAR / MAR / MNAR)
+- **Critical analysis:** Checked if missing income correlates with higher default rate
+- Built imputation decision table with documented reasoning
+- Applied stratified median imputation for `MonthlyIncome` (by age group)
+- Filled `NumberOfDependents` missing with 0
+- Added `MonthlyIncome_was_missing` binary flag column **before** imputing
+- Verified imputation with before/after distribution comparison
+- Saved cleaned dataset for Day 03
+
+### Key Findings
+
+| Finding | Detail |
+|---|---|
+| Missingness type: MonthlyIncome | MAR/MNAR — borrowers hiding income tend to be riskier |
+| Missingness type: NumberOfDependents | MAR — blank likely means 0 dependents |
+| Missing income → default rate | Higher default rate in missing income group → missingness IS informative |
+| Flag column added | `MonthlyIncome_was_missing` preserves the signal before imputing |
+| Imputation strategy: MonthlyIncome | Stratified median by age group (not global median) |
+| Imputation strategy: NumberOfDependents | Fill with 0 |
+
+### The 3 Types of Missingness (Interview Concept)
+
+| Type | Meaning | Example in this dataset |
+|---|---|---|
+| **MCAR** — Missing Completely At Random | Random, no pattern | — |
+| **MAR** — Missing At Random | Depends on other columns | Older people less likely to report income |
+| **MNAR** — Missing Not At Random | Depends on the missing value itself | High-risk borrowers hiding income |
+
+> ⚠️ MNAR is the most dangerous — imputing without a flag gives risky borrowers a fake "safe" income value. Always add a flag column first.
+
+### Charts Generated
+| Chart | Description |
+|---|---|
+| `msno_matrix.png` | White lines show which rows are missing — look for alignment |
+| `msno_bar.png` | Column completeness bar chart |
+| `msno_heatmap.png` | Do columns go missing together? |
+| `missing_income_vs_default.png` | Default rate: income-provided vs income-missing |
+| `income_imputation_comparison.png` | Distribution before vs after imputation |
+
+---
 
 ## 🧰 Tech Stack
 
