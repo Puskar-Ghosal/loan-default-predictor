@@ -29,7 +29,7 @@ loan-default-predictor/
 │
 ├── notebooks/
 │   ├── Day_01_First_Look.ipynb          ✅ Done
-│   ├── Day_02_Missing_Values.ipynb      🔒 Coming
+│   ├── Day_02_Missing_Values.ipynb      ✅ Done
 │   ├── Day_03_Outlier_Detection.ipynb   🔒 Coming
 │   ├── Day_04_Target_Analysis.ipynb     🔒 Coming
 │   ├── Day_05_Correlation.ipynb         🔒 Coming
@@ -91,7 +91,7 @@ loan-default-predictor/
 | Day | Topic | Status |
 |---|---|---|
 | Day 01 | First Look — Load, shape, dtypes, missing scan, target distribution | ✅ **Done** |
-| Day 02 | Missing Values — missingno, imputation strategy, flag columns | 🔒 Upcoming |
+| Day 02 | Missing Values — missingno, imputation strategy, flag columns | ✅ **Done** |
 | Day 03 | Outlier Detection — IQR method, box plots, cap vs remove decisions | 🔒 Upcoming |
 | Day 04 | Target Variable — Default rate by age/income, distribution splits | 🔒 Upcoming |
 | Day 05 | Correlation — Heatmap, multicollinearity, pairplot, EDA summary | 🔒 Upcoming |
