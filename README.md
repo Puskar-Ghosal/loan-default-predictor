@@ -44,8 +44,9 @@ loan-default-predictor/
 │   ├── Day_14_SHAP_Explainability.ipynb  🔒 Coming
 │   └── Day_15_Polish_and_Deploy.ipynb    🔒 Coming
 │
-├── outputs/
-│   └── charts/                           # All saved visualizations
+├── charts/                           # All saved visualizations
+├── outputs/                          # All Cleaned csv files day wise 
+│   
 │
 ├── data/
 │   └── DOWNLOAD_INSTRUCTIONS.md         # How to get the dataset
