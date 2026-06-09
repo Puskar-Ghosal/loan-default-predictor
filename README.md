@@ -3,7 +3,7 @@
 
 ![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
 ![Phase](https://img.shields.io/badge/Phase-1%20EDA-blue)
-![Day](https://img.shields.io/badge/Day-04%20of%2015-orange)
+![Day](https://img.shields.io/badge/Day-05%20of%2015-orange)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -32,7 +32,7 @@ loan-default-predictor/
 │   ├── Day_02_Missing_Values.ipynb       ✅ Done
 │   ├── Day_03_Outlier_Detection.ipynb    ✅ Done
 │   ├── Day_04_Target_Analysis.ipynb      ✅ Done
-│   ├── Day_05_Correlation.ipynb          🔒 Coming
+│   ├── Day_05_Correlation.ipynb          ✅ Done
 │   ├── Day_06_Imputation_Pipeline.ipynb  🔒 Coming
 │   ├── Day_07_Feature_Engineering.ipynb  🔒 Coming
 │   ├── Day_08_SMOTE.ipynb                🔒 Coming
@@ -94,8 +94,8 @@ loan-default-predictor/
 | Day 01 | First Look — Load, shape, dtypes, missing scan, target distribution | ✅ **Done** |
 | Day 02 | Missing Values — missingno, imputation strategy, flag columns | ✅ **Done** |
 | Day 03 | Outlier Detection — IQR method, box plots, cap vs remove decisions | ✅ **Done** |
-| Day 04 | Target Variable — Default rate by age/income, compare defaulters vs non-defaulters | ✅ **Done** |
-| Day 05 | Correlation — Heatmap, multicollinearity, pairplot, EDA summary | 🔒 Upcoming |
+| Day 04 | Target Variable — Default rate by age/income, compare two groups | ✅ **Done** |
+| Day 05 | Correlation — Heatmap, feature vs target, multicollinearity, pairplot | ✅ **Done** |
 
 ### Phase 2 — Feature Engineering (Days 6–10)
 
@@ -181,16 +181,16 @@ loan-default-predictor/
 
 | Column | Problem | Fix Applied |
 |---|---|---|
-| `age` | age < 18 found — cannot legally have a loan | Removed those rows |
+| `age` | age < 18 — cannot legally have a loan | Removed those rows |
 | `RevolvingUtilizationOfUnsecuredLines` | Max way above 100% | Capped at 1.5 |
 | `DebtRatio` | Extremely high values | Capped at 99th percentile |
 | `MonthlyIncome` | Very extreme high values | Capped at 99th percentile |
 | Late payment columns | Values 96/98 — known dataset error | Capped at 10 |
 
-### IQR Method (how to find outlier boundaries)
+### IQR Formula
 ```
-Q1  = 25th percentile value
-Q3  = 75th percentile value
+Q1  = 25th percentile
+Q3  = 75th percentile
 IQR = Q3 - Q1
 
 Lower boundary = Q1 - (1.5 × IQR)
@@ -204,47 +204,89 @@ Upper boundary = Q3 + (1.5 × IQR)
 > **Notebook:** [`notebooks/Day_04_Target_Analysis.ipynb`](notebooks/Day_04_Target_Analysis.ipynb)
 
 ### What Was Done
-- Split data into two groups: defaulters and non-defaulters
-- Compared average age, income, utilization between the two groups
+- Split data into defaulters and non-defaulters
+- Compared average age, income, utilization between both groups
 - Created age groups and checked default rate in each
 - Created income brackets and checked default rate in each
-- Plotted histograms of both groups side by side for every key feature
-- Compared ALL features at once using a mean comparison table
-- Proved why accuracy is a bad metric for this dataset with real numbers
+- Compared all features at once using a mean comparison table
+- Proved why accuracy is a bad metric using real numbers
 
 ### Key Findings
 
 | Question | Answer |
 |---|---|
-| Which age group defaults most? | Younger borrowers (18–30) have the highest default rate |
-| Does income affect default? | Yes — lower income = higher default rate |
-| Strongest signal for default | `NumberOfTimes90DaysLate` — biggest gap between two groups |
-| Dummy model accuracy | A model that predicts NO DEFAULT for everyone gets ~93% accuracy — but catches 0 defaulters |
-| Right metric to use | AUC-ROC — not accuracy |
+| Riskiest age group | Younger borrowers (18–30) default the most |
+| Income vs default | Lower income = higher default rate |
+| Strongest signal | `NumberOfTimes90DaysLate` — biggest gap between groups |
+| Dummy model accuracy | 93.3% accuracy but catches 0 defaulters |
+| Right metric | AUC-ROC — not accuracy |
 
-### Why Accuracy is Wrong Here
+---
+
+## ✅ Day 05 — Correlation Between Features
+
+> **Notebook:** [`notebooks/Day_05_Correlation.ipynb`](notebooks/Day_05_Correlation.ipynb)
+
+### What Was Done
+- Calculated correlation between every feature using `.corr()`
+- Plotted a heatmap to see all correlations at once
+- Pulled out just the correlation of each feature with our target
+- Ranked features from most to least correlated with default
+- Found feature pairs that are highly correlated with each other (multicollinearity)
+- Made a pairplot of the top 4 features colored by default vs no default
+- Made a scatter plot of utilization vs late payments to see if they separate the two groups
+
+### Key Findings
+
+| Finding | Detail |
+|---|---|
+| Most correlated with default | `NumberOfTimes90DaysLate` — strongest signal |
+| Second most correlated | `NumberOfTime30-59DaysPastDueNotWorse` |
+| Multicollinearity found | The three late payment columns are correlated with each other |
+| Why late columns are correlated | If someone is 90 days late, they were probably 30 days late first |
+| What to do about it | Will handle in Feature Engineering — Day 07 |
+
+### What is Correlation?
 
 ```
-Total people       : 150,000
-Non-defaulters     : ~140,000
-Default rate       : ~6.7%
+Correlation value is between -1 and +1
 
-If model says "NO DEFAULT" for everyone:
-  Accuracy = 140,000 / 150,000 = 93.3%  ← looks great!
-  Defaults caught = 0                    ← completely useless for a bank
++1  = both go up together (e.g. height and weight)
+ 0  = no relationship at all
+-1  = one goes up, the other goes down
 ```
 
-This is why we use **AUC-ROC** as our metric throughout this project.
+### What is Multicollinearity?
+
+When two input features are highly correlated with each other, they are saying the same thing.
+Keeping both can confuse some models (especially Logistic Regression).
+The fix is to drop one of the pair — we keep whichever one is more correlated with the target.
 
 ### Charts Made Today
 | Chart | What it shows |
 |---|---|
-| Default rate by age group | Which age is riskiest |
-| Default rate by income group | Does income protect against default |
-| Age histogram (both groups) | Age distribution of defaulters vs non-defaulters |
-| 90-day late payment histogram | How different the late payment behavior is |
-| Utilization histogram | Credit usage pattern comparison |
-| Feature comparison table | All features ranked by difference between groups |
+| Correlation heatmap | All features vs all features — red = positive, blue = negative |
+| Feature vs target bar chart | Which features are most related to default |
+| Pairplot (top 4 features) | Visual separation between defaulters and non-defaulters |
+| Scatter plot | Utilization vs late payments — colored by default |
+
+---
+
+## 🏁 Phase 1 Complete — EDA Done
+
+After 5 days of EDA, here is what we know about this dataset:
+
+| Topic | Summary |
+|---|---|
+| Dataset size | ~150,000 rows, 11 columns |
+| Missing data | Fixed — income filled with median, dependents filled with 0 |
+| Outliers | Fixed — impossible ages removed, extreme values capped |
+| Class imbalance | 14:1 ratio — will use AUC-ROC and SMOTE |
+| Strongest features | Late payment history and credit utilization |
+| Weak features | NumberOfOpenCreditLines, NumberRealEstateLoans |
+| Multicollinearity | 3 late payment columns overlap — will simplify in Day 07 |
+
+**Phase 2 starts tomorrow — Feature Engineering.**
 
 ---
 
@@ -304,18 +346,20 @@ jupyter notebook
 ## 💡 Key Learnings (Updated daily)
 
 - **Day 01:** Always look at your data first before writing any code. `.info()`, `.describe()`, `.isnull().sum()` are the three commands you run on every new dataset.
-- **Day 02:** Never fill missing values blindly. First check if the missingness itself tells you something. In this dataset, people with missing income default more — so we saved that information as a separate column.
-- **Day 03:** An outlier is not always an error. A person earning $500k/month is extreme but real. Deleting them loses real data. Capping them at a max value keeps the row but controls the extreme number.
-- **Day 04:** A model that predicts "no default" for everyone gets 93% accuracy on this dataset but is completely useless. Always think about what the metric actually means for the business problem.
+- **Day 02:** Never fill missing values blindly. First check if the missingness itself tells you something. In this dataset, people with missing income default more — so we saved that as a separate column before filling.
+- **Day 03:** An outlier is not always an error. A person earning $500k/month is extreme but real. Deleting them loses real data. Capping keeps the row but controls the extreme number.
+- **Day 04:** A model predicting "no default" for everyone gets 93% accuracy but is completely useless. Always think about what the metric actually means for the business.
+- **Day 05:** High correlation between two INPUT features is a problem — they say the same thing. High correlation between an input feature and the TARGET is what we want — it means that feature is useful for prediction.
 
 ---
 
 ## 🎯 Interview Talking Points (Updated daily)
 
 - *"The dataset had a 14:1 class imbalance — I chose AUC-ROC over accuracy because a model predicting no default for everyone gets 93% accuracy but catches zero actual defaulters."*
-- *"I found that borrowers with missing income had a higher default rate. So I added a binary flag column before filling the missing values — that way the model learns that hiding income is itself a risk signal."*
+- *"I found that borrowers with missing income had a higher default rate. So I added a binary flag column before filling the missing values — the model can then learn that hiding income is itself a risk signal."*
 - *"For outliers I used capping instead of deletion. Removing rows with extreme values loses real borrower data. Capping at the 99th percentile tames the extreme values while keeping every row."*
 - *"From the feature comparison, NumberOfTimes90DaysLate showed the biggest average difference between defaulters and non-defaulters — which later confirmed its high feature importance in the XGBoost model."*
+- *"I found multicollinearity between the three late payment columns — 30-day, 60-day, and 90-day late. This makes business sense since someone who is 90 days late was almost certainly 30 days late first. I handled this during feature engineering."*
 
 ---
 
