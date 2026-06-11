@@ -3,7 +3,7 @@
 
 ![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
 ![Phase](https://img.shields.io/badge/Phase-2%20Feature%20Engineering-purple)
-![Day](https://img.shields.io/badge/Day-06%20of%2015-orange)
+![Day](https://img.shields.io/badge/Day-07%20of%2015-orange)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -29,7 +29,7 @@ loan-default-predictor/
 │   ├── Day_04_Target_Analysis.ipynb      ✅ Done
 │   ├── Day_05_Correlation.ipynb          ✅ Done
 │   ├── Day_06_Imputation_Pipeline.ipynb  ✅ Done
-│   ├── Day_07_Feature_Engineering.ipynb  🔒 Coming
+│   ├── Day_07_Feature_Engineering.ipynb  ✅ Done
 │   ├── Day_08_SMOTE.ipynb                🔒 Coming
 │   ├── Day_09_Encoding_Scaling.ipynb     🔒 Coming
 │   ├── Day_10_Train_Test_Split.ipynb     🔒 Coming
@@ -58,7 +58,7 @@ loan-default-predictor/
 |---|---|
 | Source | [Kaggle — Give Me Some Credit](https://www.kaggle.com/c/GiveMeSomeCredit) |
 | Rows | 150,000 borrowers |
-| Features | 10 input features + 1 target |
+| Features | 10 original + 4 engineered = 14 input features |
 | Target | `SeriousDlqin2yrs` (1 = defaulted, 0 = did not) |
 | Class Balance | ~93% No Default / ~7% Default |
 
@@ -77,6 +77,10 @@ loan-default-predictor/
 | `NumberRealEstateLoansOrLines` | Int | Mortgage + real estate loans |
 | `NumberOfTime60-89DaysPastDueNotWorse` | Int | Times 60-89 days late |
 | `NumberOfDependents` | Float | Number of family dependents |
+| `debt_to_income` | Float | **New** — DebtRatio × MonthlyIncome |
+| `total_late_payments` | Int | **New** — Sum of all 3 late payment columns |
+| `ever_late` | Int | **New** — 1 if person was ever late, 0 if never |
+| `income_per_dependent` | Float | **New** — MonthlyIncome / (Dependents + 1) |
 
 ---
 
@@ -96,9 +100,9 @@ loan-default-predictor/
 
 | Day | Topic | Status |
 |---|---|---|
-| Day 06 | sklearn Pipeline — imputer + scaler in one reusable object | ✅ **Done** |
-| Day 07 | New Features — debt-to-income ratio, total late payments, ever late flag | 🔒 Upcoming |
-| Day 08 | SMOTE — create synthetic minority samples to fix class imbalance | 🔒 Upcoming |
+| Day 06 | sklearn Pipeline — imputer + scaler in one reusable object | ✅ Done |
+| Day 07 | New Features — debt-to-income, total late payments, ever late, income per dependent | ✅ **Done** |
+| Day 08 | SMOTE — synthetic minority samples to fix class imbalance | 🔒 Upcoming |
 | Day 09 | Encoding + Scaling — scale train and test correctly | 🔒 Upcoming |
 | Day 10 | Stratified Split + correct order of all operations | 🔒 Upcoming |
 
@@ -123,7 +127,7 @@ loan-default-predictor/
 | Outliers | Impossible ages removed, extreme values capped |
 | Class imbalance | 14:1 ratio — will use AUC-ROC and SMOTE |
 | Strongest features | Late payment history and credit utilization |
-| Multicollinearity | 3 late payment columns overlap — to be handled in Day 07 |
+| Multicollinearity | 3 late payment columns overlap — handled in Day 07 |
 
 ---
 
@@ -132,49 +136,68 @@ loan-default-predictor/
 > **Notebook:** [`notebooks/Day_06_Imputation_Pipeline.ipynb`](notebooks/Day_06_Imputation_Pipeline.ipynb)
 
 ### What Was Done
-- Learned what a sklearn Pipeline is and why it is useful
-- Added the `MonthlyIncome_was_missing` flag column before the pipeline
-- Removed impossible age rows before the pipeline
-- Capped all outlier columns before the pipeline
-- Built a 2-step pipeline: SimpleImputer (fills missing) + StandardScaler (scales values)
-- Used `fit_transform()` on data and checked output
-- Verified all missing values are gone after pipeline
+- Built a 2-step sklearn Pipeline: SimpleImputer + StandardScaler
+- Added `MonthlyIncome_was_missing` flag before pipeline
+- Removed impossible age rows and capped outliers before pipeline
+- Applied `fit_transform()` on data, verified zero missing values after
 - Compared column values before and after scaling
+
+### Key Concept — What is a Pipeline?
+```python
+# Without pipeline - have to repeat every step manually for test data
+imputer.fit(X_train)
+X_train = imputer.transform(X_train)
+scaler.fit(X_train)
+X_train = scaler.transform(X_train)
+
+# With pipeline - one object handles everything
+pipeline = Pipeline([('imputer', SimpleImputer()), ('scaler', StandardScaler())])
+X_train = pipeline.fit_transform(X_train)
+X_test = pipeline.transform(X_test)  # same steps, applied automatically
+```
+
+---
+
+## ✅ Day 07 — Feature Engineering
+
+> **Notebook:** [`notebooks/Day_07_Feature_Engineering.ipynb`](notebooks/Day_07_Feature_Engineering.ipynb)
+
+### What Was Done
+- Created 4 new features from existing columns
+- Checked correlation of each new feature with the target
+- Compared new features vs original features to see which ones are stronger
+- Plotted distributions of new features for defaulters vs non-defaulters
+- Saved updated dataset with 4 extra columns for next steps
+
+### New Features Created
+
+| Feature | Formula | Why we created it |
+|---|---|---|
+| `debt_to_income` | DebtRatio × MonthlyIncome | Captures actual debt amount, not just ratio |
+| `total_late_payments` | Sum of all 3 late payment columns | Combines redundant columns into one signal |
+| `ever_late` | 1 if any late payment > 0, else 0 | Simple yes/no flag — has this person ever missed a payment? |
+| `income_per_dependent` | MonthlyIncome / (Dependents + 1) | How much income available per family member |
 
 ### Key Findings
 
 | Finding | Detail |
 |---|---|
-| Pipeline steps | 1. Imputer fills remaining nulls with median  2. Scaler centers values around 0 |
-| Age before scaling | Values between 18 and 100 |
-| Age after scaling | Values roughly between -3 and +3 |
-| Why scaling matters | Without it, income (0–20000) dominates age (18–100) in some models |
+| `total_late_payments` vs target | Higher correlation than any individual late payment column |
+| `ever_late` default rate | People who were ever late default at much higher rate than those who never missed |
+| `income_per_dependent` vs target | Low income per dependent = higher default risk |
+| Original late columns | Still kept — model will decide which is most useful |
 
-### What is a Pipeline?
+### What is Feature Engineering?
 
-Instead of doing this manually every time:
-```python
-imputer.fit(X_train)
-X_train = imputer.transform(X_train)
-scaler.fit(X_train)
-X_train = scaler.transform(X_train)
-# then repeat all steps for test data...
+It is creating new columns from existing ones. Sometimes a combination of two columns tells the model more than each column alone.
+
+Example that shows why it matters:
 ```
+Person A: Income = 5000,  Dependents = 4  →  income_per_dependent = 1000  (tight budget)
+Person B: Income = 5000,  Dependents = 0  →  income_per_dependent = 5000  (comfortable)
 
-A pipeline lets you do it in one line:
-```python
-pipeline = Pipeline([('imputer', SimpleImputer()), ('scaler', StandardScaler())])
-X_train = pipeline.fit_transform(X_train)
-X_test = pipeline.transform(X_test)   # same steps applied automatically
-```
-
-### What is StandardScaler?
-```
-For each column:
-  scaled_value = (original_value - mean) / standard_deviation
-
-Result: every column has mean = 0 and std = 1
-All columns are now on the same scale
+Both have the same income but very different financial situations.
+The new feature captures that difference.
 ```
 
 ---
@@ -235,9 +258,10 @@ jupyter notebook
 - **Day 01:** Always look at your data first. `.info()`, `.describe()`, `.isnull().sum()` on every new dataset.
 - **Day 02:** Never fill missing values blindly. Check if the missingness itself is informative first.
 - **Day 03:** An outlier is not always an error. Cap real outliers, remove impossible ones.
-- **Day 04:** 93% accuracy on this dataset means nothing — a model saying "no default" always gets that. Use AUC-ROC.
+- **Day 04:** 93% accuracy on this dataset means nothing. A model saying "no default" always gets that. Use AUC-ROC.
 - **Day 05:** High correlation between two INPUT features is a problem. High correlation between input and TARGET is good.
-- **Day 06:** A Pipeline keeps all preprocessing steps in one object. fit on train, transform on test — never the other way.
+- **Day 06:** A Pipeline keeps all preprocessing steps in one object. Fit on train, transform on test — never the other way.
+- **Day 07:** Feature engineering is not guessing. Every new feature should have a business reason. Measure if it actually improves correlation with the target before keeping it.
 
 ---
 
@@ -247,8 +271,9 @@ jupyter notebook
 - *"I added a binary flag for missing income before imputing — missing income is itself a risk signal."*
 - *"I used Winsorization instead of row deletion for outliers — keeps real data, tames extreme values."*
 - *"From feature analysis, NumberOfTimes90DaysLate had the biggest separation between the two groups."*
-- *"I found multicollinearity between the three late payment columns and combined them in feature engineering."*
-- *"I used a sklearn Pipeline so that all preprocessing steps are applied consistently to both train and test data. This prevents data leakage."*
+- *"I used a sklearn Pipeline so all preprocessing steps apply consistently to train and test — prevents data leakage."*
+- *"I created a total_late_payments feature by combining the three late payment columns which were correlated with each other. This reduced redundancy and created a stronger single signal."*
+- *"I created an ever_late flag — a simple binary column for whether someone has ever missed a payment. The default rate difference between ever_late=0 and ever_late=1 was significant, making it a useful feature."*
 
 ---
 
